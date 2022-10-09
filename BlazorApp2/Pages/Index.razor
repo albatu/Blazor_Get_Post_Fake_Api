@@ -1,0 +1,137 @@
+﻿@page "/"
+@using Business.Entities
+@using Business.Services
+@inject ITodoService TodoService
+
+@if (list == null)
+{
+    <p>Yükleniyor....</p>
+}
+else
+{
+
+    <RadzenButton ButtonStyle="ButtonStyle.Success" Icon="add_circle_outline" Class="mt-2 mb-4" Text="Add New todo"
+    Click="@InsertRow" />
+    <RadzenDataGrid @ref="grid" AllowAlternatingRows="false" AllowFiltering="true" AllowPaging="true" 
+        PageSize="5" AllowSorting="true" EditMode="DataGridEditMode.Single"
+                Data="@list" TItem="PostTodo" RowUpdate="@OnUpdateRow" RowCreate="@OnCreateRow">
+        <Columns>
+            <RadzenDataGridColumn TItem="PostTodo" Property="id" Filterable="true" Title="ID" Frozen="true" Width="80px" TextAlign="TextAlign.Center">
+                <FilterTemplate Context="context">
+                    <RadzenTextBox Style="width:100%" @oninput="(args=>ValueChange(args))" />
+                </FilterTemplate>
+                <EditTemplate Context="context">
+                    <RadzenNumeric @bind-Value="context.id" Style="width:100%" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PostTodo" Property="userId" Title="User ID" Frozen="true" Width="160px">
+                <EditTemplate Context="context">
+                    <RadzenNumeric @bind-Value="context.userId" Style="width:100%" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PostTodo" Property="title" Title="Title" Width="160px">
+                <EditTemplate Context="context">
+                    <RadzenTextBox @bind-Value="context.title" Style="width:100%" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+          @*  <RadzenDataGridColumn TItem="PostTodo" Property="completed" Title="Completed" Width="200px">
+                <Template Context="context">
+                    <RadzenSwitch @bind-Value="context.completed" />
+                </Template>
+                <EditTemplate Context="context">
+                    <RadzenSwitch @bind-Value="context.completed" />
+                </EditTemplate>
+            </RadzenDataGridColumn>*@
+               <RadzenDataGridColumn TItem="PostTodo" Context="order" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Width="156px">
+                <Template Context="order">
+                    <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => EditRow(order))" @onclick:stopPropagation="true">
+                    </RadzenButton>
+                    <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@(args => DeleteRow(order))"  @onclick:stopPropagation="true">
+                    </RadzenButton>
+                </Template>
+                <EditTemplate Context="order">
+                    <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@((args) => SaveRow(order))">
+                    </RadzenButton>
+                    <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@((args) => CancelEdit(order))">
+                    </RadzenButton>
+                    <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@(args => DeleteRow(order))">
+                    </RadzenButton>
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+        </Columns>
+    </RadzenDataGrid>
+}
+
+@code {
+    private IList<PostTodo> list;
+    RadzenDataGrid<PostTodo> grid;
+
+    protected override async Task OnInitializedAsync()
+    {
+        list = await TodoService.GetAll();
+    }
+
+    async void ValueChange(dynamic id)
+    {
+        if (id.Value != "" || id.Value != null)
+        {
+            list = await TodoService.GetById(Convert.ToInt32(id.Value));
+            await InvokeAsync(StateHasChanged);
+        }
+
+    }
+
+    async Task EditRow(PostTodo todo)
+    {
+        await grid.EditRow(todo);
+    }
+
+    void OnUpdateRow(PostTodo todo)
+    {
+
+    }
+
+    async Task SaveRow(PostTodo todo)
+    {
+        if (todo == todoToInsert)
+        {
+            todoToInsert = null;
+        }
+
+        await grid.UpdateRow(todo);
+    }
+
+    void CancelEdit(PostTodo todo)
+    {
+        if (todo == todoToInsert)
+        {
+            todoToInsert = null;
+        }
+
+        grid.CancelEditRow(todo);
+
+      
+    }
+
+    async Task DeleteRow(PostTodo todo)
+    {
+        
+    }
+
+    PostTodo todoToInsert;
+
+    async Task InsertRow()
+    {
+        todoToInsert = new PostTodo();
+        await grid.InsertRow(todoToInsert);
+    }
+
+    async void OnCreateRow(PostTodo todo)
+    {
+        var post = await TodoService.Add(todo);
+        list = await TodoService.GetAll();
+        await InvokeAsync(StateHasChanged);
+    }
+
+}
